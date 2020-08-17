@@ -24,19 +24,7 @@ function getDataFromLevelDB(key){
     var result = db.get(key);
     return result;
 }
-// Get Block Height
-function getDBBlockHeight() {
-    return new Promise((resolve, reject) => {
-        let i = 0;
-        db.createReadStream().on('data', (data) => {
-            i++;
-        }).on('error', (err) => {
-            reject(err);
-        }).on('close', () => {
-            resolve(i);
-        });
-    });
-}
+
 let errorLog = [];
 var num0fvalidblock=0;
 var num0finvalidblock=0;
@@ -52,18 +40,6 @@ class Blockchain{
         this.total_chain_height = -1;
         //if chain is empty
         this.addBlock(new BlockClass.StarBlock("GENESIS Block"));
-    }
-
-    // Get block height
-    async getBlockHeight(){
-        const chain_height = await getDBBlockHeight();
-        return chain_height;
-    }
-    async bringBlockbyHash(blockHash){
-        return await getDataFromLevelDBByHash(blockHash);
-    }
-    async bringBlockbyWalletAddress(address){
-        return await getDataFromLevelDBByWalletAddress(address);
     }
 
     // get block
@@ -84,7 +60,7 @@ class Blockchain{
         //var hashHesaplanacakBody = JSON.stringify(newBlock);
 
         //newBlock.hash = SHA256(hashHesaplanacakBody).toString();
-        newBlock.mineBlock(this.difficulty);
+        //newBlock.mineBlock(this.difficulty);
         this.total_chain_height++;
         //newBlock.recall_block = await hashModulo(newBlock.hash, this.total_chain_height);
         //var rn= (Math.floor(Math.random() * Number.MAX_SAFE_INTEGER))
@@ -107,7 +83,7 @@ class Blockchain{
         recal_arr_size--;
         //let initial_recall_data = {
         var recall_id= newBlock.height-1;//(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)) % this.total_chain_height;
-            //flag:false,
+        //flag:false,
 
         newBlock.recall_arr.push(recall_id);
         recal_arr_size--;
@@ -137,7 +113,6 @@ class Blockchain{
         // newBlock.recall_arr = tmp_recall_arr;
         ////
         /*var iscurrentblockvalid = (Math.round(Math.random() * Number.MAX_SAFE_INTEGER)) % 200;
-
         if (iscurrentblockvalid)
         {
             newBlock.isvalid = true;
@@ -166,33 +141,49 @@ class Blockchain{
 }
 let bc = new Blockchain();
 const kayitEkle = (name) => bc.addBlock(new BlockClass.StarBlock(name))
-var numoftestblocks=400000-1;
-var numof_grouped_blocks_by_one_node=20000;
-var invalidity_percentage= 0.25; //numoftestblocks*invalidity_percentage/100
+var numoftestblocks=50-1;
+var numof_grouped_blocks_by_one_node=15;
+var invalidity_percentage= 10; //numoftestblocks*invalidity_percentage/100
 var enough_invalid=(numoftestblocks/100)*invalidity_percentage;//integer invalid block sayisi
 
+
 const main = async ()=> {
-    for (var i = 0; i < numoftestblocks; i++) {
+    /*for (var i = 0; i < numoftestblocks; i++) {
         const data1Result = await kayitEkle("Data"+(i+1));
+    }*/
+    for (var i = 0; i < numoftestblocks+1; i++) {
+        const data = await getDataFromLevelDB(i);
+        console.log(data);
     }
     var k=0;
     var j= 0,y=0;
     var catchedarr =[];
     //
     let currentBlock;
+
     var ii=0;
-    var num_of_inv_blck=0;
+    for (let i=0;i<=numoftestblocks;i++)
+    {
+        let s =  await getDataFromLevelDB(i);
+        currentBlock = JSON.parse(s);
+        currentBlock.isvalid=true;
+        await addDataToLevelDB(currentBlock.height, JSON.stringify(currentBlock))
+        allblocks[i]=i;
+    }
     while( ii< enough_invalid){
         var makethisblockinvalid = (Math.round(Math.random() * Number.MAX_SAFE_INTEGER)) % numoftestblocks;
-        currentBlock =  await bc.getBlock(makethisblockinvalid);
+        let s =  await getDataFromLevelDB(makethisblockinvalid);
+        currentBlock = JSON.parse(s);
         if (currentBlock.height < 3)
             continue;
+
         if(!(invalidblockarrayheight.includes(currentBlock.height)))
         {
             currentBlock.isvalid = false;
             invalidblockarray.push(currentBlock);
             invalidblockarrayheight.push(currentBlock.height);
-            await bc.updateBlock(currentBlock.height, currentBlock);
+            //await bc.updateBlock(currentBlock.height, currentBlock);
+            await addDataToLevelDB(makethisblockinvalid, JSON.stringify(currentBlock))
             num0finvalidblock++;
             ii++;
         }
@@ -201,7 +192,8 @@ const main = async ()=> {
     while (z <= numoftestblocks){
         if(!invalidblockarrayheight.includes(allblocks[z]))
         {
-            currentBlock =  await bc.getBlock(allblocks[z]);
+            let s =  await getDataFromLevelDB(allblocks[z]);
+            currentBlock = JSON.parse(s);
             validblockarray.push(currentBlock);
             validblockarrayheight.push(allblocks[z]);
             num0fvalidblock++;
@@ -212,7 +204,8 @@ const main = async ()=> {
     var groupedblockarray =[];
     for (let i = 0; i < numof_grouped_blocks_by_one_node; i++) {
         var randomformod = Math.floor(Math.random() * numoftestblocks) + 1;
-        currentBlock =  await bc.getBlock(randomformod);
+        let s =  await getDataFromLevelDB(randomformod);
+        currentBlock = JSON.parse(s);
         if (currentBlock.height < 3)
         {
             i--;
@@ -225,7 +218,7 @@ const main = async ()=> {
     }
     let groupedblockarrayh =[];
     for (var i = 0; i < groupedblockarray.length; i++) {
-         groupedblockarrayh[i] = groupedblockarray[i].height;
+        groupedblockarrayh[i] = groupedblockarray[i].height;
     }
     //console.log("g height:"+groupedblockarrayh.length+" group block arr: "+groupedblockarrayh);
     //
