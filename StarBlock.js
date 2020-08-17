@@ -1,3 +1,4 @@
+
 /* ===== Block Class ==============================
 |  Class with a constructor for block 			   |
 |  ===============================================*/
@@ -7,15 +8,11 @@ const ec = new EC('secp256k1');
 var bigInt = require("big-integer");
 class StarBlock{
     constructor(data){  // data {adres, star{....} }
-        this.hash = this.calculateHash();
         this.height = 0;
         this.body = data;
-        //this.address = data.address;
-        //this.body = data;
         this.time = 0;
         this.previousBlockHash = 'hesaplaninca_yaziliyor';
-        this.nonce=0;
-        //this.recall_block=0;
+        this.hash = crypto.createHash('sha256').update( ''+this.time + JSON.stringify(this.body)+this.previousBlockHash).digest('hex');
         this.recall_arr = [];
         this.isvalid = true;
     }
